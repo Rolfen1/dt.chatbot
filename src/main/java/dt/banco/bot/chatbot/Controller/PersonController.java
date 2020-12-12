@@ -3,10 +3,12 @@ package dt.banco.bot.chatbot.Controller;
 import dt.banco.bot.chatbot.Model.ModelAssembler.PersonModelAssembler;
 import dt.banco.bot.chatbot.Model.Person;
 import dt.banco.bot.chatbot.Model.Repository.PersonRepository;
+import dt.banco.bot.chatbot.Model.Response.BalanceResponse;
 import dt.banco.bot.chatbot.Model.Response.PersonResponse;
 import dt.banco.bot.chatbot.Model.Response.PersonsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,6 +56,10 @@ public class PersonController {
                 response.setMessage("Successfully created Person with id (" + newPerson.getId() + ")");
                 log.info(response.getMessage());
             }
+        } catch (DataIntegrityViolationException e) {
+            response = new PersonResponse();
+            response.setMessage("This person already exists");
+            log.info(response.getMessage());
         } catch (Exception e) {
             response = new PersonResponse();
             response.setMessage("Exception: " + e);
@@ -83,6 +89,30 @@ public class PersonController {
             log.info(response.getMessage());
         } catch (Exception e) {
             response = new PersonResponse();
+            response.setMessage("Exception: " + e);
+            log.error("Exception: ", e);
+        }
+
+        return response;
+    }
+
+    @GetMapping("/Person/GetBalance/{accountNumber}")
+    public BalanceResponse GetBalance(@PathVariable Integer accountNumber) {
+        BalanceResponse response = new BalanceResponse();
+        Person requestedPerson;
+
+        try {
+            log.info("Querying person by accountNumber (" + accountNumber + ")");
+            requestedPerson = repository.findByAccountNumber(accountNumber);
+
+            if (requestedPerson != null) {
+                response = new BalanceResponse(requestedPerson.getBalance());
+                log.info("The balance of the Person with accountNumber (" + accountNumber + ") is: " + response.getBalance());
+            } else {
+                response.setMessage("Couldn't find a person with account number (" + accountNumber + ")");
+                log.info(response.getMessage());
+            }
+        } catch (Exception e) {
             response.setMessage("Exception: " + e);
             log.error("Exception: ", e);
         }
