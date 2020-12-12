@@ -5,8 +5,13 @@ import dt.banco.bot.chatbot.Model.Person;
 import dt.banco.bot.chatbot.Model.Repository.PersonRepository;
 import dt.banco.bot.chatbot.Model.Request.TransferRequest;
 import dt.banco.bot.chatbot.Model.Response.TransferResponse;
+import dt.banco.bot.chatbot.Model.TransferReceipt;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,10 +27,8 @@ public class TransferController {
         this.personAssembler = personAssembler;
     }
 
-    @PostMapping("/Transfer/ToAccount")
-    public TransferResponse TransferToAccount(@RequestBody TransferRequest request) {
-        TransferResponse response = new TransferResponse();
-
+    @PostMapping(value ="/Transfer/ToAccount", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<InputStreamResource> TransferToAccount(@RequestBody TransferRequest request) {
         try {
             Person from = personRepository.findByAccountNumber(request.getFrom());
             Person to = personRepository.findByAccountNumber(request.getTo());
@@ -37,25 +40,28 @@ public class TransferController {
                     personRepository.save(from);
                     personRepository.save(to);
 
-                    response.setPdf("pdf");
-                    response.setStatus("OK");
-                    response.setMessage("The money transfer has been successful");
+                    TransferReceipt receipt = new TransferReceipt(from, to, request.getAmount());
+
+                    log.info("The money transfer has been successful");
+
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.add("Content-Disposition", "inline; filename=receipt.pdf");
+                    return ResponseEntity
+                            .ok()
+                            .header(headers.toString())
+                            .contentType(MediaType.APPLICATION_PDF)
+                            .body(new InputStreamResource(receipt.toPdf()));
                 } else {
-                    response.setMessage("The balance of the origin account is less than the amount to be transferred");
+                    log.info("The balance of the origin account is less than the amount to be transferred");
                 }
-                log.info(response.getMessage());
             } else {
                 String message = from == null ? "The account number (" + request.getFrom() + ") couldn't be found. " : "";
                 message = message + (to == null ? "The account number (" + request.getTo() + ") couldn't be found." : "");
-                response.setMessage(message);
                 log.info(message);
             }
         } catch (Exception e) {
-            response = new TransferResponse();
-            response.setMessage("Exception: " + e);
             log.error("Exception: ", e);
         }
-
-        return response;
+        return ResponseEntity.badRequest().build();
     }
 }
