@@ -1,7 +1,8 @@
-package Model;
+package dt.banco.bot.chatbot.Model;
 
 import java.util.Objects;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -11,7 +12,9 @@ public class Person {
 
     private @Id @GeneratedValue Long id;
     private String name;
+    @Column(unique = true)
     private String rut;
+    @Column(unique = true)
     private Integer accountNumber;
     private Integer balance;
 
