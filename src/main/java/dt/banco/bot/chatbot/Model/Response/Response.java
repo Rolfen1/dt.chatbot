@@ -1,4 +1,4 @@
-package Response;
+package dt.banco.bot.chatbot.Model.Response;
 
 public class Response {
     private Integer StatusCode;

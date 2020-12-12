@@ -1,4 +1,4 @@
-package Model;
+package dt.banco.bot.chatbot.Model;
 
 public class EconomicIndicators {
 }
